@@ -1,0 +1,22 @@
+---
+title: "Econ_456_data_cleaning"
+output: html_document
+date: "2023-03-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+library(dplyr)
+```
+
+```{r}
+brfss = read.xport("LLCP2021.XPT")
+cols = c("X_PSU", "X_LLCPWT","X_STSTR", "MARITAL","X_AGEG5YR", "X_AGE_G","EMPLOY1","X_SEX", "X_EDUCAG",'X_INCOMG1',"X_IMPRACE", "ACEDEPRS", "ACEDRINK", "ACEDRUGS", "ACEPRISN", "ACEDIVRC", "ACEPUNCH", "ACEHURT1", "ACESWEAR", "ACETOUCH", "ACETTHEM", "ACEHVSEX", "ACEADSAF", "ACEADNED")
+l1 <- brfss %>% select(cols)
+l2 <- l1[complete.cases(l1),]
+write.csv(l2, "ace_no_na.csv", row.names=FALSE)
+```

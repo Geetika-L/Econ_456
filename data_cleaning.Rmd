@@ -1,0 +1,155 @@
+---
+title: "data_cleaning"
+output: html_document
+date: "2023-03-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- read.csv("ace_no_na.csv")
+```
+
+```{r}
+## Filter out all people who did not respond to marital status question
+data <- data %>% filter(MARITAL!=9)
+
+## Filter put people who refused to answer age and ACE questions and people who were not sure if they suffered from ACE
+data <- data %>% filter(ACEDEPRS!=9 & ACEDRINK!=9 & ACEDRUGS !=9 & ACEPRISN!=9 & ACEDIVRC!=9 &ACEPUNCH!=9 &
+ACEHURT1!=9&ACESWEAR!=9 & ACETOUCH!=9&ACETTHEM!= 9 & ACEHVSEX !=9 & ACEADSAF != 9 & ACEADNED != 9 
+& ACEDEPRS!=7 & ACEDRINK!=7 & ACEDRUGS !=7 & ACEPRISN!=7 & ACEDIVRC!=7 &ACEPUNCH!=7 &
+ACEHURT1!=7&ACESWEAR!=7 & ACETOUCH!=7&ACETTHEM!= 7 & ACEHVSEX !=7 & ACEADSAF != 7 & ACEADNED != 7)
+
+## Filter out people who were 'homemaker', 'student', 'retired' or 'unable to work' or refused to answer question
+data <- data %>% filter(EMPLOY1!=5 & EMPLOY1!=6 & EMPLOY1!=7 & EMPLOY1!=8 & EMPLOY1!=9)
+
+## remove people who refused to answer education level question
+data <- data %>% filter(X_EDUCAG !=9)
+```
+
+```{r}
+## Recoding ACE variables
+data$ACEDEPRS[data$ACEDEPRS==1] <- 1 ## yes deprs
+data$ACEDEPRS[data$ACEDEPRS==2] <- 0 ## no deprs
+
+data$ACEDRINK[data$ACEDRINK==1] <- 1 ## yes ace drink
+data$ACEDRINK[data$ACEDRINK==2] <- 0 ## no ace drink
+
+data$ACEDRUGS[data$ACEDRUGS==1] <- 1 ## yes ace drugs
+data$ACEDRUGS[data$ACEDRUGS==2] <- 0 ## no ace drugs
+
+data$ACEPRISN[data$ACEPRISN==1] <- 1 ## yes ace prison
+data$ACEPRISN[data$ACEPRISN==2] <- 0 ## no ace prison
+
+data$ACEDIVRC[data$ACEDIVRC==1] <- 1 ## yes ace divorce
+data$ACEDIVRC[data$ACEDIVRC==2] <- 0 ## no ace divorce
+data$ACEDIVRC[data$ACEDIVRC==8] <- 0 ## no ace divorce (parents not married)
+
+data$ACEPUNCH[data$ACEPUNCH==1] <- 0 ## no ace punch
+data$ACEPUNCH[data$ACEPUNCH==2] <- 1 ## yes ace punch (only once)
+data$ACEPUNCH[data$ACEPUNCH==3] <- 1 ## yes ace punch 
+
+data$ACEHURT1[data$ACEHURT1==1] <- 0 ## no ace HURT1
+data$ACEHURT1[data$ACEHURT1==2] <- 1 ## yes ace HURT1 (only once)
+data$ACEHURT1[data$ACEHURT1==3] <- 1 ## yes ace HURT1 
+
+data$ACESWEAR[data$ACESWEAR==1] <- 0 ## no ace SWEAR
+data$ACESWEAR[data$ACESWEAR==2] <- 1 ## no ace SWEAR (only once)
+data$ACESWEAR[data$ACESWEAR==3] <- 1 ## yes ace SWEAR 
+
+data$ACETOUCH[data$ACETOUCH==1] <- 0 ## no ace TOUCH
+data$ACETOUCH[data$ACETOUCH==2] <- 1 ## yes ace TOUCH (only once)
+data$ACETOUCH[data$ACETOUCH==3] <- 1 ## yes ace TOUCH 
+
+data$ACETTHEM[data$ACETTHEM==1] <- 0 ## no ace TTHEM
+data$ACETTHEM[data$ACETTHEM==2] <- 1 ## yes ace TTHEM (only once)
+data$ACETTHEM[data$ACETTHEM==3] <- 1 ## yes ace TTHEM
+
+data$ACEHVSEX[data$ACEHVSEX==1] <- 0 ## no ace HVSEX
+data$ACEHVSEX[data$ACEHVSEX==2] <- 1 ## yes ace HVSEX (only once)
+data$ACEHVSEX[data$ACEHVSEX==3] <- 1 ## yes ace HVSEX
+
+
+data$ACEADSAF[data$ACEADSAF==1] <- 1 ## yes ace ADSAF (never safe)
+data$ACEADSAF[data$ACEADSAF==2] <- 1 ## yes ace ADSAF (little safe)
+data$ACEADSAF[data$ACEADSAF==3] <- 1 ## yes ace ADSAF (some safe)
+data$ACEADSAF[data$ACEADSAF==4] <- 0 ## no ace ADSAF (most)
+data$ACEADSAF[data$ACEADSAF==5] <- 0 ## no ace ADSAF all the time
+
+data$ACEADNED[data$ACEADNED==1] <- 1 ## yes ace ADNED (never need met)
+data$ACEADNED[data$ACEADNED==2] <- 1 ## yes ace ADNED (little need met)
+data$ACEADNED[data$ACEADNED==3] <- 1 ## yes ace ADNED (some need met)
+data$ACEADNED[data$ACEADNED==4] <- 0 ## no ace ADNED (most need met)
+data$ACEADNED[data$ACEADNED==5] <- 0 ## no ace ADNED all the time
+```
+
+```{r}
+# Calculating ACE score
+data <-data %>% rowwise() %>% 
+  mutate(ACE_score = sum(c_across(ACEDEPRS:ACEADNED))) %>% ungroup
+data <- data %>% mutate(ACE_cat = case_when(ACE_score ==0 ~ '0', ACE_score ==1 ~ '1', ACE_score ==2 ~ '2', ACE_score ==3 ~ '3', ACE_score >3 ~ '4+'))
+```
+
+```{r}
+## Creating EMPLOY as 0 or 1
+data <- data %>% mutate(UNEMPLOY = case_when(EMPLOY1 ==1 ~ as.integer(0), EMPLOY1 ==2 ~ as.integer(0), EMPLOY1 ==3 ~ as.integer(1), EMPLOY1 ==4 ~ as.integer(1)))
+```
+
+```{r}
+## Creating HS_Non_Comp as 0 or 1
+data <- data %>% mutate(HS_Non_Grad = case_when(X_EDUCAG ==1 ~ 1L, X_EDUCAG == 2 ~ 0L, X_EDUCAG ==3 ~ 0L,X_EDUCAG ==4 ~ 0L))
+```
+
+```{r}
+## Dropping useless columns
+data <- data %>% select(-c(X_AGEG5YR,ACEDEPRS,ACEDRINK,ACEDRUGS,ACEPRISN,ACEDIVRC,ACEPUNCH,ACEHURT1,ACESWEAR,ACETOUCH,ACETTHEM,ACEHVSEX,ACEADSAF,ACEADNED,ACE_score,EMPLOY1,X_INCOMG1))
+```
+
+```{r}
+## Converting columns to factor
+data <- data %>% mutate_at(c('MARITAL','X_AGE_G','X_SEX','X_EDUCAG','X_IMPRACE','ACE_cat'), as.factor)
+```
+
+```{r}
+## Downloading cleaned data
+write.csv(data,'ace_data_processed.csv')
+```
+
+
+```{r}
+## Create survey design for each of the 
+options(survey.lonely.psu = "adjust")
+brfssdesign <- svydesign(
+id=~1,
+strata = ~ X_STSTR,
+weights = ~X_LLCPWT,
+data = data)
+```
+
+```{r}
+# Creating age and ace_cat proportion by age group
+## Change AGE_G from 1 to 6 for all proportions
+data_age_1 <-subset(brfssdesign,X_AGE_G=='6')
+svymean(~ACE_cat,data_age_1)
+
+# Creating sex and ace_cat proportion by age group
+## Change  X_SEX from 1 to 2 for all proportions
+data_sex <-subset(brfssdesign,X_SEX=='2')
+svymean(~ACE_cat,data_sex)
+
+# Creating race and ace_cat proportion by age group
+## Change  X_IMPRACE from 1 to 6 for all proportions
+data_race <-subset(brfssdesign,X_IMPRACE=='3')
+svymean(~ACE_cat,data_race)
+
+# Creating education and ace_cat proportion by age group
+## Change  X-EDUCAG from 1 to 6 for all proportions
+data_race <-subset(brfssdesign,X_EDUCAG=='1')
+svymean(~ACE_cat,data_race)
+```
+
+```{r}
+## Get proportion of people 
+```
